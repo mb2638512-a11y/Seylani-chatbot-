@@ -341,31 +341,39 @@
     <div class="modal-overlay" id="voiceModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>🎙️ Voice Settings</h3>
+                <h3>⚙️ Settings</h3>
                 <button class="modal-close" id="voiceModalClose">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="setting-group">
-                    <label>Voice Output</label>
-                    <select id="voiceSelect">
-                        <option value="">Loading voices...</option>
-                    </select>
+                    <label>OpenRouter API Key (Optional)</label>
+                    <input type="password" id="apiKeyInput" placeholder="sk-or-v1-..."
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); margin-top: 5px;">
+                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Leave blank to use the
+                        default hackathon key.</p>
                 </div>
-                <div class="setting-group">
-                    <label>Speech Rate</label>
-                    <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
-                    <span id="rateValue">1.0x</span>
-                </div>
-                <div class="setting-group">
-                    <label>Auto-read responses</label>
-                    <label class="toggle"><input type="checkbox" id="autoReadToggle"><span
-                            class="toggle-slider"></span></label>
+                <div class="setting-group" style="margin-top: 15px;">
+                    <div class="setting-group">
+                        <label>Voice Output</label>
+                        <select id="voiceSelect">
+                            <option value="">Loading voices...</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Speech Rate</label>
+                        <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
+                        <span id="rateValue">1.0x</span>
+                    </div>
+                    <div class="setting-group">
+                        <label>Auto-read responses</label>
+                        <label class="toggle"><input type="checkbox" id="autoReadToggle"><span
+                                class="toggle-slider"></span></label>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="script.js"></script>
+        <script src="script.js"></script>
 </body>
 
 </html>

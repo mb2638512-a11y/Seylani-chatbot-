@@ -6,7 +6,7 @@
     'use strict';
 
     // ─── Config ───
-    const API_KEY = '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';
+    let API_KEY = localStorage.getItem('nexus_api_key') || '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';
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
     const SYSTEM_PROMPT = `You are Seylani AI Assistant, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME EXACT LANGUAGE the user writes in. If they write in Roman Urdu (e.g. "kyese ho bhai"), you MUST reply purely in Roman Urdu. If Urdu text, respond in Urdu text. If Spanish, Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown. Keep responses concise but thorough.`;
 
@@ -39,6 +39,7 @@
     const speechRateInput = $('#speechRate');
     const rateValue = $('#rateValue');
     const autoReadToggle = $('#autoReadToggle');
+    const apiKeyInput = $('#apiKeyInput');
     const statusText = $('#statusText');
     const themeToggleBtn = $('#themeToggleBtn');
     const themeIcon = $('#themeIcon');
@@ -205,9 +206,8 @@
     async function fetchFreeModels() {
         const modelLoading = $('#modelLoading');
         try {
-            const res = await fetch('https://openrouter.ai/api/v1/models', {
-                headers: { 'Authorization': `Bearer ${API_KEY}` }
-            });
+            // Models endpoint does not require API key, removed Authorization to prevent 401 errors from breaking UI
+            const res = await fetch('https://openrouter.ai/api/v1/models');
             if (!res.ok) throw new Error('Failed to fetch models');
             const data = await res.json();
 
@@ -215,7 +215,7 @@
             const freeModels = data.data
                 .filter(m => m.pricing && parseFloat(m.pricing.prompt) === 0 && parseFloat(m.pricing.completion) === 0)
                 .sort((a, b) => (b.context_length || 0) - (a.context_length || 0))
-                .slice(0, 20);
+                .slice(0, 150);
 
             if (freeModels.length > 0) {
                 const group = document.createElement('optgroup');
@@ -688,6 +688,21 @@
         autoRead = autoReadToggle.checked;
         localStorage.setItem('nexus_auto_read', JSON.stringify(autoRead));
     });
+
+    // API Key settings
+    if (apiKeyInput) {
+        apiKeyInput.value = localStorage.getItem('nexus_api_key') || '';
+        apiKeyInput.addEventListener('input', () => {
+            const val = apiKeyInput.value.trim();
+            if (val) {
+                localStorage.setItem('nexus_api_key', val);
+                API_KEY = val;
+            } else {
+                localStorage.removeItem('nexus_api_key');
+                API_KEY = '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';
+            }
+        });
+    }
 
     // Model change
     modelSelect.addEventListener('change', () => {
