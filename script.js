@@ -8,7 +8,7 @@
     // ─── Config ───
     const API_KEY = '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';
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-    const SYSTEM_PROMPT = `You are Seylani AI Assistant, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME LANGUAGE the user writes in. If they write in Urdu, respond in Urdu. If Spanish, respond in Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown (bold, lists, code blocks). Keep responses concise but thorough.`;
+    const SYSTEM_PROMPT = `You are Seylani AI Assistant, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME EXACT LANGUAGE the user writes in. If they write in Roman Urdu (e.g. "kyese ho bhai"), you MUST reply purely in Roman Urdu. If Urdu text, respond in Urdu text. If Spanish, Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown. Keep responses concise but thorough.`;
 
     // ─── DOM References ───
     const $ = (s) => document.querySelector(s);
@@ -43,6 +43,22 @@
     const themeToggleBtn = $('#themeToggleBtn');
     const themeIcon = $('#themeIcon');
 
+    // Attachments DOM
+    const attachBtn = $('#attachBtn');
+    const attachmentsPreview = $('#attachmentsPreview');
+    const fileInput = $('#fileInput');
+    const folderInput = $('#folderInput');
+
+    // Video Call DOM
+    const startCallBtn = $('#startCallBtn');
+    const videoOverlay = $('#videoOverlay');
+    const localVideo = $('#localVideo');
+    const aiAura = $('#aiAura');
+    const switchCameraBtn = $('#switchCameraBtn');
+    const screenShareBtn = $('#screenShareBtn');
+    const callMicBtn = $('#callMicBtn');
+    const endCallBtn = $('#endCallBtn');
+
     // ─── State ───
     let conversations = JSON.parse(localStorage.getItem('nexus_conversations') || '{}');
     let activeConversationId = localStorage.getItem('nexus_active_id') || null;
@@ -54,6 +70,14 @@
     let speechRate = parseFloat(localStorage.getItem('nexus_speech_rate') || '1');
     let selectedVoice = localStorage.getItem('nexus_voice') || '';
     let currentTheme = localStorage.getItem('nexus_theme') || 'dark';
+
+    // Video Call State
+    let currentStream = null;
+    let cameraMode = 'user'; // 'user' or 'environment'
+    let isVideoCallActive = false;
+
+    // Attachments State
+    let pendingAttachments = []; // { name, type, data, isImage }
 
     // ─── Emoji Data ───
     const emojis = [
@@ -143,6 +167,19 @@
             const found = voices.find(v => v.name === selectedVoice);
             if (found) utterance.voice = found;
         }
+
+        // Animate AI Aura during video call
+        utterance.onstart = () => {
+            if (aiAura) aiAura.classList.add('active');
+        };
+        utterance.onend = () => {
+            if (aiAura) aiAura.classList.remove('active');
+            // Auto restart listening if in video call for continuous hands-free chat
+            if (isVideoCallActive && !isRecording) toggleVoiceRecording();
+        };
+        utterance.onerror = () => {
+            if (aiAura) aiAura.classList.remove('active');
+        };
 
         speechSynthesis.cancel();
         speechSynthesis.speak(utterance);
@@ -411,27 +448,65 @@
 
     // ─── Send Message ───
     async function sendMessage(text) {
-        const message = (text || chatInput.value).trim();
-        if (!message || isTyping) return;
+        let message = (text || chatInput.value).trim();
+        if ((!message && pendingAttachments.length === 0) || isTyping) return;
 
         const conv = getActiveConversation();
         showWelcomeScreen(false);
 
-        if (conv.messages.length === 0) {
+        if (conv.messages.length === 0 && message) {
             conv.title = message.length > 35 ? message.slice(0, 35) + '...' : message;
+        } else if (conv.messages.length === 0 && pendingAttachments.length > 0) {
+            conv.title = "File Analysis";
         }
 
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Add user message
-        conv.messages.push({ role: 'user', content: message, time: timeStr });
+        // Build API Content Payload (supports vision + text)
+        let apiContent = [];
+        let uiContent = message;
+
+        if (pendingAttachments.length > 0) {
+            let filesText = "";
+            let imageBlocks = [];
+            let uiImagesHTML = "";
+
+            pendingAttachments.forEach(att => {
+                if (att.isImage) {
+                    imageBlocks.push({ type: "image_url", image_url: { url: att.data } });
+                    uiImagesHTML += `<img src="${att.data}" style="max-width: 200px; border-radius: 8px; margin-top: 5px; display: block;" alt="attachment">`;
+                } else {
+                    filesText += `\n\n--- Start of File: ${att.name} ---\n${att.data}\n--- End of File ---`;
+                }
+            });
+
+            if (filesText) {
+                message += filesText; // Append file text to prompt
+            }
+
+            if (imageBlocks.length > 0) {
+                apiContent.push({ type: "text", text: message || "Analyze these images." });
+                apiContent = apiContent.concat(imageBlocks);
+                uiContent += uiImagesHTML;
+            } else {
+                apiContent = message;
+            }
+        } else {
+            apiContent = message;
+        }
+
+        // Add user message to state
+        conv.messages.push({ role: 'user', content: uiContent, time: timeStr });
         if (!conv.apiMessages) conv.apiMessages = [];
-        conv.apiMessages.push({ role: 'user', content: message });
-        appendMessageDOM('user', message, timeStr);
+        conv.apiMessages.push({ role: 'user', content: apiContent });
+
+        appendMessageDOM('user', uiContent, timeStr);
 
         chatInput.value = '';
         chatInput.style.height = 'auto';
+        pendingAttachments = [];
+        renderAttachmentPreview();
         updateSendButton();
         saveState();
         renderChatHistory();
@@ -484,17 +559,78 @@
     }
 
     function updateSendButton() {
-        const hasText = chatInput.value.trim().length > 0;
-        sendBtn.classList.toggle('active', hasText);
-        sendBtn.disabled = !hasText;
+        const hasInput = chatInput.value.trim().length > 0 || pendingAttachments.length > 0;
+        sendBtn.classList.toggle('active', hasInput);
+        sendBtn.disabled = !hasInput;
     }
 
-    function openSidebar() { sidebar.classList.add('open'); sidebarOverlay.classList.add('visible'); }
-    function closeSidebar() { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('visible'); }
+    // ─── File Attachment Logic ───
+    attachBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fileInput.click();
+    });
 
-    function autoResizeTextarea() {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    const attachFolderBtn = $('#attachFolderBtn');
+    if (attachFolderBtn) {
+        attachFolderBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            folderInput.click();
+        });
+    }
+
+    fileInput.addEventListener('change', handleFiles);
+    folderInput.addEventListener('change', handleFiles);
+
+    function handleFiles(e) {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+
+        files.forEach(file => {
+            const isImage = file.type.startsWith('image/');
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                pendingAttachments.push({
+                    name: file.name,
+                    type: file.type,
+                    data: evt.target.result,
+                    isImage: isImage
+                });
+                renderAttachmentPreview();
+                updateSendButton();
+            };
+
+            if (isImage) {
+                reader.readAsDataURL(file);
+            } else {
+                reader.readAsText(file); // assuming text readable like code, txt, log
+            }
+        });
+        e.target.value = ''; // reset
+    }
+
+    function renderAttachmentPreview() {
+        attachmentsPreview.innerHTML = '';
+        pendingAttachments.forEach((att, index) => {
+            const item = document.createElement('div');
+            item.className = 'attachment-item';
+
+            if (att.isImage) {
+                item.innerHTML = `<img src="${att.data}" alt="preview">`;
+            } else {
+                item.innerHTML = `<span class="file-icon">📄</span><span style="position:absolute; bottom:2px; font-size:8px; color:#aaa; overflow:hidden; white-space:nowrap; max-width:100%; text-overflow:ellipsis; padding:0 2px;">${att.name}</span>`;
+            }
+
+            const rmBtn = document.createElement('button');
+            rmBtn.className = 'attachment-remove';
+            rmBtn.innerHTML = '×';
+            rmBtn.onclick = () => {
+                pendingAttachments.splice(index, 1);
+                renderAttachmentPreview();
+                updateSendButton();
+            };
+            item.appendChild(rmBtn);
+            attachmentsPreview.appendChild(item);
+        });
     }
 
     // ─── Event Listeners ───
@@ -575,6 +711,75 @@
             themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
         }
     }
+
+    // ─── Video Call Logic ───
+    async function startVideoCall() {
+        try {
+            currentStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: cameraMode },
+                audio: false // audio handled by Web Speech API separately
+            });
+            localVideo.srcObject = currentStream;
+            videoOverlay.classList.add('visible');
+            isVideoCallActive = true;
+            localVideo.classList.toggle('mirror', cameraMode === 'user');
+            if (recognition && !isRecording) toggleVoiceRecording(); // auto start listening
+            callMicBtn.classList.toggle('active', isRecording);
+        } catch (err) {
+            console.error('Error accessing camera:', err);
+            alert('Camera access denied or unavailable.');
+        }
+    }
+
+    function stopVideoCall() {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
+        }
+        localVideo.srcObject = null;
+        videoOverlay.classList.remove('visible');
+        isVideoCallActive = false;
+        if (isRecording) toggleVoiceRecording(); // stop listening
+    }
+
+    async function switchCamera() {
+        if (!isVideoCallActive) return;
+        cameraMode = cameraMode === 'user' ? 'environment' : 'user';
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+        await startVideoCall();
+    }
+
+    async function shareScreen() {
+        try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            currentStream = screenStream;
+            localVideo.srcObject = currentStream;
+            localVideo.classList.remove('mirror'); // don't mirror screen
+
+            // Listen for stop sharing from browser UI
+            screenStream.getVideoTracks()[0].onended = () => {
+                startVideoCall(); // fallback to webcam
+            };
+        } catch (err) {
+            console.error('Error sharing screen:', err);
+        }
+    }
+
+    // Video Call Event Listeners
+    startCallBtn.addEventListener('click', startVideoCall);
+    endCallBtn.addEventListener('click', stopVideoCall);
+    switchCameraBtn.addEventListener('click', switchCamera);
+    screenShareBtn.addEventListener('click', shareScreen);
+
+    callMicBtn.addEventListener('click', () => {
+        toggleVoiceRecording();
+        callMicBtn.classList.toggle('active', isRecording);
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
