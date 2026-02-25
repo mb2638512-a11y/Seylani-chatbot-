@@ -1,5 +1,5 @@
 /* ============================================
-   NexusAI Chatbot — Core Logic + API + Voice
+   Seylani AI Assistant — Core Logic + API + Voice
    ============================================ */
 
 (function () {
@@ -8,7 +8,7 @@
     // ─── Config ───
     const API_KEY = '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';
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-    const SYSTEM_PROMPT = `You are NexusAI, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME LANGUAGE the user writes in. If they write in Urdu, respond in Urdu. If Spanish, respond in Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown (bold, lists, code blocks). Keep responses concise but thorough.`;
+    const SYSTEM_PROMPT = `You are Seylani AI Assistant, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME LANGUAGE the user writes in. If they write in Urdu, respond in Urdu. If Spanish, respond in Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown (bold, lists, code blocks). Keep responses concise but thorough.`;
 
     // ─── DOM References ───
     const $ = (s) => document.querySelector(s);
@@ -390,7 +390,7 @@
                 'Authorization': `Bearer ${API_KEY}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': window.location.href,
-                'X-Title': 'NexusAI Hackathon Chatbot'
+                'X-Title': 'Seylani AI Assistant'
             },
             body: JSON.stringify({
                 model: model,
