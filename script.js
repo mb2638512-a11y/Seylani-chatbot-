@@ -6,7 +6,7 @@
     'use strict';
 
     // ─── Config ───
-    let API_KEY = localStorage.getItem('nexus_api_key') || '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';
+    let API_KEY = localStorage.getItem('nexus_api_key') || '';
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
     const SYSTEM_PROMPT = `You are Seylani AI Assistant, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME EXACT LANGUAGE the user writes in. If they write in Roman Urdu (e.g. "kyese ho bhai"), you MUST reply purely in Roman Urdu. If Urdu text, respond in Urdu text. If Spanish, Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown. Keep responses concise but thorough.`;
 
@@ -436,6 +436,16 @@
                 });
                 modelSelect.appendChild(group);
                 console.log('DEBUG: Models added to dropdown, total options:', modelSelect.options.length);
+
+                // If no API key, auto-select the best free model so the app works immediately
+                if (!API_KEY) {
+                    const firstFreeOpt = group.querySelector('option');
+                    if (firstFreeOpt) {
+                        modelSelect.value = firstFreeOpt.value;
+                        if (statusText) statusText.textContent = `Online — ${firstFreeOpt.textContent} (Free)`;
+                        console.log('DEBUG: No API key found — auto-selected free model:', firstFreeOpt.value);
+                    }
+                }
             }
 
             if (modelLoading) modelLoading.style.display = 'none';
@@ -647,19 +657,39 @@
     // ─── OpenRouter API Call ───
     async function callOpenRouterAPI(conv) {
         const model = modelSelect.value;
+
+        // If no API key is set, check if the chosen model is a free (no-cost) model.
+        // Free models on OpenRouter are identified by the ":free" suffix or by the
+        // dynamic free-models group fetched in fetchFreeModels().
+        const isFreeModel = model.endsWith(':free') ||
+            (modelSelect.selectedOptions[0]?.parentElement?.label || '').includes('Free');
+
+        if (!API_KEY && !isFreeModel) {
+            throw new Error(
+                'No API key set. Please click the ⚙️ Settings button in the sidebar and enter your OpenRouter API key. ' +
+                'Get a free key at https://openrouter.ai/keys — Or switch to a 🆓 Free Model from the model dropdown (no key needed).'
+            );
+        }
+
         const apiMessages = [
             { role: 'system', content: SYSTEM_PROMPT },
             ...(conv.apiMessages || [])
         ];
 
+        const headers = {
+            'Content-Type': 'application/json',
+            'HTTP-Referer': window.location.href,
+            'X-Title': 'Seylani AI Assistant'
+        };
+
+        // Only send Authorization header if we actually have a key
+        if (API_KEY) {
+            headers['Authorization'] = `Bearer ${API_KEY}`;
+        }
+
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'Seylani AI Assistant'
-            },
+            headers,
             body: JSON.stringify({
                 model: model,
                 messages: apiMessages,
@@ -669,8 +699,18 @@
         });
 
         if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`API Error ${response.status}: ${err}`);
+            const errBody = await response.text();
+            let friendlyMsg = `API Error ${response.status}`;
+            if (response.status === 401) {
+                friendlyMsg = 'Invalid or expired API key (401). Please update your OpenRouter API key in ⚙️ Settings, or switch to a 🆓 Free Model.';
+            } else if (response.status === 429) {
+                friendlyMsg = 'Rate limit reached (429). Please wait a moment and try again, or switch to a different model.';
+            } else if (response.status === 402) {
+                friendlyMsg = 'Insufficient credits (402). Please top up your OpenRouter account or switch to a 🆓 Free Model.';
+            } else {
+                friendlyMsg = `API Error ${response.status}: ${errBody}`;
+            }
+            throw new Error(friendlyMsg);
         }
 
         const data = await response.json();
@@ -928,9 +968,11 @@
             if (val) {
                 localStorage.setItem('nexus_api_key', val);
                 API_KEY = val;
+                apiKeyInput.style.borderColor = 'var(--accent-start)';
             } else {
                 localStorage.removeItem('nexus_api_key');
-                API_KEY = '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';
+                API_KEY = '';
+                apiKeyInput.style.borderColor = '';
             }
         });
     }
