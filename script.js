@@ -6,7 +6,7 @@
     'use strict';
 
     // ─── Config ───
-    let API_KEY = localStorage.getItem('nexus_api_key') || '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';
+    let API_KEY = localStorage.getItem('nexus_api_key') || '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';
     const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
     const SYSTEM_PROMPT = `You are Seylani AI Assistant, a brilliant, friendly, and enthusiastic AI assistant built for a hackathon. You help with coding, debugging, project ideas, tech stack advice, presentations, and general knowledge. You respond in the SAME EXACT LANGUAGE the user writes in. If they write in Roman Urdu (e.g. "kyese ho bhai"), you MUST reply purely in Roman Urdu. If Urdu text, respond in Urdu text. If Spanish, Spanish. Always be helpful, use emojis to be engaging, and format responses with markdown. Keep responses concise but thorough.`;
 
@@ -34,7 +34,7 @@
     const voiceOutputToggle = $('#voiceOutputToggle');
     const voiceModal = $('#voiceModal');
     const voiceModalClose = $('#voiceModalClose');
-    const voiceSettingsBtn = $('#voiceSettingsBtn');
+    const settingsBtn = $('#voiceSettingsBtn');
     const voiceSelect = $('#voiceSelect');
     const speechRateInput = $('#speechRate');
     const rateValue = $('#rateValue');
@@ -202,24 +202,230 @@
         });
     }
 
+    // ─── Static Model List (100+ Models) ───
+    const STATIC_MODELS = [
+        // OpenAI Models
+        { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo', category: 'OpenAI' },
+        { id: 'openai/gpt-4', name: 'GPT-4', category: 'OpenAI' },
+        { id: 'openai/gpt-4o', name: 'GPT-4o', category: 'OpenAI' },
+        { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', category: 'OpenAI' },
+        { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo', category: 'OpenAI' },
+        { id: 'openai/gpt-3.5-turbo-16k', name: 'GPT-3.5 Turbo 16K', category: 'OpenAI' },
+        { id: 'openai/o1-preview', name: 'O1 Preview', category: 'OpenAI' },
+        { id: 'openai/o1-mini', name: 'O1 Mini', category: 'OpenAI' },
+        { id: 'openai/chatgpt-4o-latest', name: 'ChatGPT-4o Latest', category: 'OpenAI' },
+
+        // Anthropic Claude Models
+        { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', category: 'Anthropic' },
+        { id: 'anthropic/claude-3.5-sonnet:beta', name: 'Claude 3.5 Sonnet Beta', category: 'Anthropic' },
+        { id: 'anthropic/claude-3-opus', name: 'Claude 3 Opus', category: 'Anthropic' },
+        { id: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet', category: 'Anthropic' },
+        { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku', category: 'Anthropic' },
+        { id: 'anthropic/claude-2.1', name: 'Claude 2.1', category: 'Anthropic' },
+        { id: 'anthropic/claude-2', name: 'Claude 2', category: 'Anthropic' },
+        { id: 'anthropic/claude-instant-1', name: 'Claude Instant', category: 'Anthropic' },
+
+        // Meta Llama Models
+        { id: 'meta-llama/llama-3.2-90b-vision-instruct', name: 'Llama 3.2 90B Vision', category: 'Meta' },
+        { id: 'meta-llama/llama-3.2-11b-vision-instruct', name: 'Llama 3.2 11B Vision', category: 'Meta' },
+        { id: 'meta-llama/llama-3.1-405b-instruct', name: 'Llama 3.1 405B', category: 'Meta' },
+        { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B', category: 'Meta' },
+        { id: 'meta-llama/llama-3.1-8b-instruct', name: 'Llama 3.1 8B', category: 'Meta' },
+        { id: 'meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B', category: 'Meta' },
+        { id: 'meta-llama/llama-3-8b-instruct', name: 'Llama 3 8B', category: 'Meta' },
+        { id: 'meta-llama/llama-2-70b-chat', name: 'Llama 2 70B', category: 'Meta' },
+        { id: 'meta-llama/llama-2-13b-chat', name: 'Llama 2 13B', category: 'Meta' },
+        { id: 'meta-llama/codellama-70b-instruct', name: 'Code Llama 70B', category: 'Meta' },
+        { id: 'meta-llama/codellama-34b-instruct', name: 'Code Llama 34B', category: 'Meta' },
+
+        // Mistral AI Models
+        { id: 'mistralai/mistral-large', name: 'Mistral Large', category: 'Mistral' },
+        { id: 'mistralai/mistral-medium', name: 'Mistral Medium', category: 'Mistral' },
+        { id: 'mistralai/mistral-small', name: 'Mistral Small', category: 'Mistral' },
+        { id: 'mistralai/mistral-7b-instruct', name: 'Mistral 7B', category: 'Mistral' },
+        { id: 'mistralai/mixtral-8x7b-instruct', name: 'Mixtral 8x7B', category: 'Mistral' },
+        { id: 'mistralai/mixtral-8x22b-instruct', name: 'Mixtral 8x22B', category: 'Mistral' },
+        { id: 'mistralai/codestral-latest', name: 'Codestral', category: 'Mistral' },
+        { id: 'mistralai/pixtral-12b', name: 'Pixtral 12B', category: 'Mistral' },
+        { id: 'mistralai/ministral-8b', name: 'Ministral 8B', category: 'Mistral' },
+        { id: 'mistralai/ministral-3b', name: 'Ministral 3B', category: 'Mistral' },
+
+        // Google Models
+        { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5', category: 'Google' },
+        { id: 'google/gemini-pro', name: 'Gemini Pro', category: 'Google' },
+        { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', category: 'Google' },
+        { id: 'google/gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', category: 'Google' },
+        { id: 'google/palm-2-chat-bison', name: 'PaLM 2 Chat', category: 'Google' },
+        { id: 'google/palm-2-codechat-bison', name: 'PaLM 2 Code Chat', category: 'Google' },
+        { id: 'google/gemma-2-27b-it', name: 'Gemma 2 27B', category: 'Google' },
+        { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', category: 'Google' },
+        { id: 'google/gemma-7b-it', name: 'Gemma 7B', category: 'Google' },
+
+        // Cohere Models
+        { id: 'cohere/command-r-plus', name: 'Command R+', category: 'Cohere' },
+        { id: 'cohere/command-r', name: 'Command R', category: 'Cohere' },
+        { id: 'cohere/command', name: 'Command', category: 'Cohere' },
+        { id: 'cohere/command-light', name: 'Command Light', category: 'Cohere' },
+        { id: 'cohere/command-nightly', name: 'Command Nightly', category: 'Cohere' },
+
+        // Perplexity Models
+        { id: 'perplexity/llama-3.1-sonar-huge-128k-online', name: 'Sonar Huge 128K Online', category: 'Perplexity' },
+        { id: 'perplexity/llama-3.1-sonar-large-128k-online', name: 'Sonar Large 128K Online', category: 'Perplexity' },
+        { id: 'perplexity/llama-3.1-sonar-small-128k-online', name: 'Sonar Small 128K Online', category: 'Perplexity' },
+
+        // DeepSeek Models
+        { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', category: 'DeepSeek' },
+        { id: 'deepseek/deepseek-coder', name: 'DeepSeek Coder', category: 'DeepSeek' },
+        { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1', category: 'DeepSeek' },
+
+        // Qwen Models
+        { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', category: 'Qwen' },
+        { id: 'qwen/qwen-2.5-7b-instruct', name: 'Qwen 2.5 7B', category: 'Qwen' },
+        { id: 'qwen/qwen-2-72b-instruct', name: 'Qwen 2 72B', category: 'Qwen' },
+        { id: 'qwen/qwen-2-7b-instruct', name: 'Qwen 2 7B', category: 'Qwen' },
+        { id: 'qwen/qwen-2.5-coder-32b-instruct', name: 'Qwen 2.5 Coder 32B', category: 'Qwen' },
+        { id: 'qwen/qwq-32b-preview', name: 'QwQ 32B Preview', category: 'Qwen' },
+        { id: 'qwen/qwen-2-vl-7b-instruct', name: 'Qwen 2 VL 7B', category: 'Qwen' },
+
+        // NVIDIA Models
+        { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron 70B', category: 'NVIDIA' },
+        { id: 'nvidia/nemotron-4-340b-instruct', name: 'Nemotron 4 340B', category: 'NVIDIA' },
+
+        // X.AI Models
+        { id: 'x-ai/grok-beta', name: 'Grok Beta', category: 'X.AI' },
+        { id: 'x-ai/grok-vision-beta', name: 'Grok Vision Beta', category: 'X.AI' },
+        { id: 'x-ai/grok-2-1212', name: 'Grok 2', category: 'X.AI' },
+
+        // AI21 Models
+        { id: 'ai21/jamba-1-5-large', name: 'Jamba 1.5 Large', category: 'AI21' },
+        { id: 'ai21/jamba-1-5-mini', name: 'Jamba 1.5 Mini', category: 'AI21' },
+        { id: 'ai21/jamba-instruct', name: 'Jamba Instruct', category: 'AI21' },
+
+        // 01.AI Models
+        { id: '01-ai/yi-large', name: 'Yi Large', category: '01.AI' },
+        { id: '01-ai/yi-large-turbo', name: 'Yi Large Turbo', category: '01.AI' },
+        { id: '01-ai/yi-1.5-34b-chat', name: 'Yi 1.5 34B', category: '01.AI' },
+        { id: '01-ai/yi-1.5-9b-chat', name: 'Yi 1.5 9B', category: '01.AI' },
+
+        // Microsoft Models
+        { id: 'microsoft/wizardlm-2-8x22b', name: 'WizardLM 2 8x22B', category: 'Microsoft' },
+        { id: 'microsoft/wizardlm-2-7b', name: 'WizardLM 2 7B', category: 'Microsoft' },
+        { id: 'microsoft/phi-3-medium-128k-instruct', name: 'Phi-3 Medium 128K', category: 'Microsoft' },
+        { id: 'microsoft/phi-3-mini-128k-instruct', name: 'Phi-3 Mini 128K', category: 'Microsoft' },
+        { id: 'microsoft/phi-3.5-mini-128k-instruct', name: 'Phi-3.5 Mini 128K', category: 'Microsoft' },
+
+        // Databricks Models
+        { id: 'databricks/dbrx-instruct', name: 'DBRX Instruct', category: 'Databricks' },
+
+        // Nous Research Models
+        { id: 'nousresearch/hermes-3-llama-3.1-405b', name: 'Hermes 3 405B', category: 'Nous Research' },
+        { id: 'nousresearch/hermes-3-llama-3.1-70b', name: 'Hermes 3 70B', category: 'Nous Research' },
+        { id: 'nousresearch/nous-capybara-34b', name: 'Nous Capybara 34B', category: 'Nous Research' },
+        { id: 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', name: 'Hermes 2 Mixtral DPO', category: 'Nous Research' },
+
+        // Cognitive Computations
+        { id: 'cognitivecomputations/dolphin-mixtral-8x7b', name: 'Dolphin Mixtral 8x7B', category: 'Cognitive' },
+        { id: 'cognitivecomputations/dolphin-mixtral-8x22b', name: 'Dolphin Mixtral 8x22B', category: 'Cognitive' },
+        { id: 'cognitivecomputations/dolphin-llama-3-70b', name: 'Dolphin Llama 3 70B', category: 'Cognitive' },
+
+        // Teknium Models
+        { id: 'teknium/openhermes-2.5-mistral-7b', name: 'OpenHermes 2.5 Mistral', category: 'Teknium' },
+
+        // Intel Models
+        { id: 'intel/neural-chat-7b', name: 'Neural Chat 7B', category: 'Intel' },
+
+        // Together AI Models
+        { id: 'togethercomputer/stripedhyena-nous-7b', name: 'StripedHyena Nous 7B', category: 'Together' },
+
+        // Phind Models
+        { id: 'phind/phind-codellama-34b', name: 'Phind CodeLlama 34B', category: 'Phind' },
+
+        // WizardLM Models
+        { id: 'wizardlm/wizardlm-13b', name: 'WizardLM 13B', category: 'WizardLM' },
+
+        // OpenChat Models
+        { id: 'openchat/openchat-7b', name: 'OpenChat 7B', category: 'OpenChat' },
+        { id: 'openchat/openchat-8b', name: 'OpenChat 8B', category: 'OpenChat' },
+
+        // Pygmalion Models
+        { id: 'pygmalionai/mythalion-13b', name: 'Mythalion 13B', category: 'Pygmalion' },
+
+        // Undi95 Models
+        { id: 'undi95/toppy-m-7b', name: 'Toppy M 7B', category: 'Undi95' },
+        { id: 'undi95/remm-slerp-l2-13b', name: 'ReMM SLERP L2 13B', category: 'Undi95' },
+
+        // Gryphe Models
+        { id: 'gryphe/mythomax-l2-13b', name: 'MythoMax L2 13B', category: 'Gryphe' },
+        { id: 'gryphe/mythomist-7b', name: 'MythoMist 7B', category: 'Gryphe' },
+
+        // Sao10K Models
+        { id: 'sao10k/fimbulvetr-11b-v2', name: 'Fimbulvetr 11B v2', category: 'Sao10K' },
+
+        // Neversleep Models
+        { id: 'neversleep/noromaid-mixtral-8x7b-instruct', name: 'Noromaid Mixtral 8x7B', category: 'Neversleep' },
+        { id: 'neversleep/llama-3-lumimaid-70b', name: 'Lumimaid 70B', category: 'Neversleep' },
+
+        // Inflection Models
+        { id: 'inflection/inflection-3-pi', name: 'Inflection 3 Pi', category: 'Inflection' },
+        { id: 'inflection/inflection-3-productivity', name: 'Inflection 3 Productivity', category: 'Inflection' },
+
+        // Lizpreciatior Models
+        { id: 'lizpreciatior/lzlv-70b-fp16-hf', name: 'LZLV 70B', category: 'Lizpreciatior' },
+
+        // AllenAI Models
+        { id: 'allenai/olmo-7b-instruct', name: 'OLMo 7B', category: 'AllenAI' },
+        { id: 'allenai/olmo-2-1124-13b-instruct', name: 'OLMo 2 13B', category: 'AllenAI' },
+
+        // Snowflake Models
+        { id: 'snowflake/snowflake-arctic-instruct', name: 'Arctic Instruct', category: 'Snowflake' },
+
+        // SambaNova Models
+        { id: 'sao10k/samba-1.1-70b', name: 'Samba 1.1 70B', category: 'SambaNova' },
+    ];
+
     // ─── Dynamic Model Fetching ───
     async function fetchFreeModels() {
+        console.log('DEBUG: fetchFreeModels() called');
         const modelLoading = $('#modelLoading');
+        console.log('DEBUG: modelLoading element:', modelLoading);
+        console.log('DEBUG: modelSelect element:', modelSelect);
+
+        // Add static models first, grouped by category
+        const categories = [...new Set(STATIC_MODELS.map(m => m.category))];
+        categories.forEach(category => {
+            const group = document.createElement('optgroup');
+            group.label = `📦 ${category}`;
+            STATIC_MODELS.filter(m => m.category === category).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                group.appendChild(opt);
+            });
+            modelSelect.appendChild(group);
+        });
+
+        console.log('DEBUG: Static models added, total:', STATIC_MODELS.length);
+
         try {
+            console.log('DEBUG: Fetching free models from API...');
             // Models endpoint does not require API key, removed Authorization to prevent 401 errors from breaking UI
             const res = await fetch('https://openrouter.ai/api/v1/models');
+            console.log('DEBUG: API response status:', res.status);
             if (!res.ok) throw new Error('Failed to fetch models');
             const data = await res.json();
+            console.log('DEBUG: Received models data, count:', data.data?.length);
 
             // Filter free models (prompt price = 0)
             const freeModels = data.data
                 .filter(m => m.pricing && parseFloat(m.pricing.prompt) === 0 && parseFloat(m.pricing.completion) === 0)
                 .sort((a, b) => (b.context_length || 0) - (a.context_length || 0))
-                .slice(0, 150);
+                .slice(0, 100);
+
+            console.log('DEBUG: Free models filtered, count:', freeModels.length);
 
             if (freeModels.length > 0) {
                 const group = document.createElement('optgroup');
-                group.label = '🆓 Free Models';
+                group.label = '🆓 Free Models (Dynamic)';
                 freeModels.forEach(m => {
                     const opt = document.createElement('option');
                     opt.value = m.id;
@@ -229,12 +435,13 @@
                     group.appendChild(opt);
                 });
                 modelSelect.appendChild(group);
+                console.log('DEBUG: Models added to dropdown, total options:', modelSelect.options.length);
             }
 
             if (modelLoading) modelLoading.style.display = 'none';
         } catch (err) {
-            console.warn('Could not fetch models:', err);
-            if (modelLoading) modelLoading.textContent = 'Using auto mode';
+            console.error('DEBUG: Error fetching models:', err);
+            if (modelLoading) modelLoading.textContent = 'Models loaded';
         }
     }
 
@@ -411,6 +618,30 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ─── Sidebar Functions ───
+    function openSidebar() {
+        const sidebar = $('#sidebar');
+        const sidebarOverlay = $('#sidebarOverlay');
+        if (sidebar) sidebar.classList.add('open');
+        if (sidebarOverlay) sidebarOverlay.classList.add('visible');
+    }
+
+    function closeSidebar() {
+        const sidebar = $('#sidebar');
+        const sidebarOverlay = $('#sidebarOverlay');
+        if (sidebar) sidebar.classList.remove('open');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('visible');
+    }
+
+    // ─── Textarea Auto-Resize ───
+    function autoResizeTextarea() {
+        const chatInput = $('#chatInput');
+        if (chatInput) {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+        }
     }
 
     // ─── OpenRouter API Call ───
@@ -669,7 +900,7 @@
     });
 
     // Voice settings modal
-    voiceSettingsBtn.addEventListener('click', () => { voiceModal.classList.add('visible'); closeSidebar(); });
+    if (settingsBtn) settingsBtn.addEventListener('click', () => { voiceModal.classList.add('visible'); closeSidebar(); });
     voiceModalClose.addEventListener('click', () => voiceModal.classList.remove('visible'));
     voiceModal.addEventListener('click', (e) => { if (e.target === voiceModal) voiceModal.classList.remove('visible'); });
 
@@ -699,7 +930,7 @@
                 API_KEY = val;
             } else {
                 localStorage.removeItem('nexus_api_key');
-                API_KEY = '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';
+                API_KEY = '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';
             }
         });
     }
@@ -803,9 +1034,19 @@
 
     // ─── Initialize ───
     function init() {
+        console.log('=== DEBUG: init() started ===');
+        console.log('DEBUG: DOM elements check:', {
+            chatMessages: !!chatMessages,
+            chatInput: !!chatInput,
+            sendBtn: !!sendBtn,
+            modelSelect: !!modelSelect,
+            menuBtn: !!menuBtn,
+            sidebar: !!sidebar
+        });
         createParticles();
         initEmojiPicker();
         initVoiceRecognition();
+        console.log('DEBUG: About to call fetchFreeModels()');
         fetchFreeModels();
 
         // Restore theme

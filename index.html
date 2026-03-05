@@ -71,7 +71,7 @@
             <div class="chat-history" id="chatHistory"></div>
 
             <div class="sidebar-footer">
-                <div class="sidebar-footer-item" id="voiceSettingsBtn">
+                <button class="sidebar-footer-item" id="voiceSettingsBtn" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round">
                         <circle cx="12" cy="12" r="3" />
@@ -79,15 +79,15 @@
                             d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
                     </svg>
                     <span>Voice Settings</span>
-                </div>
-                <div class="sidebar-footer-item" id="clearAllBtn">
+                </button>
+                <button class="sidebar-footer-item" id="clearAllBtn" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                     </svg>
                     <span>Clear all chats</span>
-                </div>
+                </button>
             </div>
         </aside>
 
@@ -345,35 +345,37 @@
                 <button class="modal-close" id="voiceModalClose">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="setting-group">
+                <div class="setting-group" style="margin-bottom: 15px;">
                     <label>OpenRouter API Key (Optional)</label>
-                    <input type="password" id="apiKeyInput" placeholder="sk-or-v1-..."
+                    <input type="password" id="apiKeyInput" autocomplete="off" placeholder="sk-or-v1-..."
                         style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); margin-top: 5px;">
                     <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Leave blank to use the
                         default hackathon key.</p>
                 </div>
-                <div class="setting-group" style="margin-top: 15px;">
-                    <div class="setting-group">
-                        <label>Voice Output</label>
-                        <select id="voiceSelect">
-                            <option value="">Loading voices...</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <label>Speech Rate</label>
-                        <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
-                        <span id="rateValue">1.0x</span>
-                    </div>
-                    <div class="setting-group">
-                        <label>Auto-read responses</label>
-                        <label class="toggle"><input type="checkbox" id="autoReadToggle"><span
-                                class="toggle-slider"></span></label>
-                    </div>
+                <!-- Divider -->
+                <div style="height: 1px; background: var(--border-color); margin: 15px 0;"></div>
+
+                <div class="setting-group">
+                    <label>Voice Output</label>
+                    <select id="voiceSelect">
+                        <option value="">Loading voices...</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Speech Rate</label>
+                    <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
+                    <span id="rateValue">1.0x</span>
+                </div>
+                <div class="setting-group">
+                    <label>Auto-read responses</label>
+                    <label class="toggle"><input type="checkbox" id="autoReadToggle"><span
+                            class="toggle-slider"></span></label>
                 </div>
             </div>
         </div>
+    </div>
 
-        <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>
